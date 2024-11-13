@@ -1,0 +1,201 @@
+{% extends "layout.html" %}
+{% block title %}Бронирования{% endblock %}
+{% block content %}
+
+<h1 id="page-title"><t>Бронирования</t></h1>
+
+<div style="text-align: right; margin-bottom: 10px;">
+    <button id="edit-btn" onclick="toggleEditMode()">Изменить</button>
+    <button id="delete-btn" onclick="toggleDeleteMode()">Удалить</button>
+    <button id="add-btn" onclick="toggleAddForm()">Добавить</button>
+</div>
+
+<div id="action-buttons" style="display: none; text-align: right; margin-bottom: 10px;">
+    <button id="apply-btn" onclick="applyChanges()">Применить</button>
+    <button id="cancel-btn" onclick="cancelAction()">Отменить</button>
+</div>
+
+<div id="add-booking-form" style="display: none;">
+    <h2>Добавить новое бронирование</h2>
+    <form method="POST" id="add-booking-form-action">
+        {{ form.hidden_tag() }}
+        {{ form.booking_date.label }} {{ form.booking_date() }}<br>
+        {{ form.check_in_date.label }} {{ form.check_in_date() }}<br>
+        {{ form.check_out_date.label }} {{ form.check_out_date() }}<br>
+        {{ form.room_id.label }} {{ form.room_id() }}<br>
+        {{ form.status_id.label }} {{ form.status_id() }}<br>
+        <button type="submit">Добавить</button>
+    </form>
+</div>
+
+<form id="booking-table-form" method="POST" action="{{ url_for('delete_bookings') }}">
+    <table>
+        <thead>
+            <tr>
+                <th id="select-column" style="display: none;">Выбор</th>
+                <th>Дата бронирования</th>
+                <th>Дата заезда</th>
+                <th>Дата выезда</th>
+                <th>Номер комнаты</th>
+                <th>Статус бронирования</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for booking in bookings %}
+            <tr>
+                <td class="select-cell" style="display: none;">
+                    <input type="checkbox" name="booking_ids" value="{{ booking[0].booking_id }}" class="delete-checkbox">
+                </td>
+                <td contenteditable="false" data-booking-id="{{ booking[0].booking_id }}" data-field="booking_date">{{ booking[0].booking_date }}</td>
+                <td contenteditable="false" data-booking-id="{{ booking[0].booking_id }}" data-field="check_in_date">{{ booking[0].check_in_date }}</td>
+                <td contenteditable="false" data-booking-id="{{ booking[0].booking_id }}" data-field="check_out_date">{{ booking[0].check_out_date }}</td>
+                <td contenteditable="false" data-booking-id="{{ booking[0].booking_id }}" data-field="room_id">
+                    {{ booking[1].number }}  <!-- Отображаем название комнаты -->
+                </td>
+                <td contenteditable="false" data-booking-id="{{ booking[0].booking_id }}" data-field="status_id">
+                    {{ booking[2].status_name }}  <!-- Отображаем статус -->
+                </td>                                 
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+    let originalBookingData = {};
+
+    function updateTitle(title) {
+        document.getElementById('page-title').innerText = title;
+    }
+
+    function toggleAddForm() {
+        resetAllModes();
+        const addForm = document.getElementById('add-booking-form');
+        addForm.style.display = 'block';
+        updateTitle("Бронирования (добавление)");
+        showConfirmButtons('add');
+    }
+
+    function toggleDeleteMode() {
+        resetAllModes();
+        document.getElementById('select-column').style.display = 'table-cell';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'table-cell';
+        });
+        updateTitle("Бронирования (удаление)");
+        showConfirmButtons('delete');
+    }
+
+    function toggleEditMode() {
+        resetAllModes();
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const bookingId = cell.getAttribute('data-booking-id');
+            const field = cell.getAttribute('data-field');
+            
+            originalBookingData[bookingId] = originalBookingData[bookingId] || {};
+            originalBookingData[bookingId][field] = cell.innerText;
+        
+            cell.contentEditable = true;
+            cell.style.backgroundColor = '#f0f8ff';
+        });
+        updateTitle("Бронирования (редактирование)");
+        showConfirmButtons('edit');
+    }
+
+    function resetAllModes() {
+        updateTitle("Бронирования");
+        document.getElementById('add-booking-form').style.display = 'none';
+        document.getElementById('select-column').style.display = 'none';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'none';
+        });
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            cell.contentEditable = false;
+            cell.style.backgroundColor = '';
+        });
+        document.getElementById('action-buttons').style.display = 'none';
+    }
+
+    function showConfirmButtons(mode) {
+        const actionButtons = document.getElementById('action-buttons');
+        actionButtons.style.display = 'block';
+    }
+
+    function applyChanges() {
+        if (document.getElementById('add-booking-form').style.display === 'block') {
+            const form = document.getElementById('add-booking-form-action');
+            const formData = new FormData(form);
+            fetch("{{ url_for('booking_list') }}", {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Бронирование добавлено!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при добавлении бронирования.");
+                }
+            });
+        } else if (document.getElementById('action-buttons').style.display === 'block') {
+            if (document.getElementById('select-column').style.display === 'table-cell') {
+                confirmDelete();
+            } else {
+                saveChanges();
+            }
+        }
+        resetAllModes();
+    }
+
+    function cancelAction() {
+        resetAllModes();
+    }
+
+    function confirmDelete() {
+        document.getElementById('booking-table-form').submit();
+    }
+
+    function saveChanges() {
+        const updates = [];
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const bookingId = cell.getAttribute('data-booking-id');
+            const field = cell.getAttribute('data-field');
+            const value = cell.innerText;
+            
+
+            if (originalBookingData[bookingId] && originalBookingData[bookingId][field] !== value) {
+                if (field === 'room_id' || field === 'status_id') {
+                    updates.push({ booking_id: bookingId, field: field, value: value });
+                } else {
+                    updates.push({ booking_id: bookingId, field: field, value: value });
+                }
+            }
+        });
+
+        if (updates.length > 0) {
+            fetch("{{ url_for('update_booking_field') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Изменения сохранены!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при сохранении изменений: " + data.error);
+                }
+            })
+            .catch(error => {
+                alert("Ошибка при отправке запроса: " + error.message);
+            });
+        } else {
+            alert("Нет изменений для сохранения.");
+        }
+    }
+</script>
+
+{% endblock %}

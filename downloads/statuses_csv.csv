@@ -1,0 +1,6 @@
+status_name,status_id
+Confirmed,1
+Cancelled,2
+Pending,3
+Checked In,4
+Checked Out,5

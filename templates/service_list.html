@@ -1,0 +1,176 @@
+{% extends "layout.html" %}
+{% block title %}Услуги{% endblock %}
+{% block content %}
+
+<h1 id="page-title">Услуги</h1>
+
+<div style="text-align: right; margin-bottom: 10px;">
+    <button id="edit-btn" onclick="toggleEditMode()">Изменить</button>
+    <button id="delete-btn" onclick="toggleDeleteMode()">Удалить</button>
+    <button id="add-btn" onclick="toggleAddForm()">Добавить</button>
+</div>
+
+<div id="action-buttons" style="display: none; text-align: right; margin-bottom: 10px;">
+    <button id="apply-btn" onclick="applyChanges()">Применить</button>
+    <button id="cancel-btn" onclick="cancelAction()">Отменить</button>
+</div>
+
+<div id="add-service-form" style="display: none;">
+    <h2>Добавить новую услугу</h2>
+    <form method="POST" id="add-service-form-action">
+        {{ form.hidden_tag() }}
+        {{ form.type.label }} {{ form.type() }}<br>
+        {{ form.cost.label }} {{ form.cost() }}<br>
+        <button type="submit">Добавить</button>
+    </form>
+</div>
+
+<form id="service-table-form" method="POST" action="{{ url_for('delete_services') }}">
+    <table>
+        <thead>
+            <tr>
+                <th id="select-column" style="display: none;">Выбор</th>
+                <th>Тип услуги</th>
+                <th>Стоимость</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for service in services %}
+            <tr>
+                <td class="select-cell" style="display: none;">
+                    <input type="checkbox" name="service_ids" value="{{ service.service_id }}" class="delete-checkbox">
+                </td>
+                <td contenteditable="false" data-service-id="{{ service.service_id }}" data-field="type">{{ service.type }}</td>
+                <td contenteditable="false" data-service-id="{{ service.service_id }}" data-field="cost">{{ service.cost }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+    let originalServiceData = {};
+
+    function toggleAddForm() {
+        resetAllModes();
+        const addForm = document.getElementById('add-service-form');
+        addForm.style.display = 'block';
+        updateTitle("Услуги (добавление)");
+        showConfirmButtons('add');
+    }
+
+    function toggleDeleteMode() {
+        resetAllModes();
+        document.getElementById('select-column').style.display = 'table-cell';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'table-cell';
+        });
+        updateTitle("Услуги (удаление)");
+        showConfirmButtons('delete');
+    }
+
+    function toggleEditMode() {
+        resetAllModes();
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const serviceId = cell.getAttribute('data-service-id');
+            const field = cell.getAttribute('data-field');
+            originalServiceData[serviceId] = originalServiceData[serviceId] || {};
+            originalServiceData[serviceId][field] = cell.innerText;
+
+            cell.contentEditable = true;
+            cell.style.backgroundColor = '#f0f8ff';
+        });
+        updateTitle("Услуги (редактирование)");
+        showConfirmButtons('edit');
+    }
+
+    function resetAllModes() {
+        updateTitle("Услуги");
+        document.getElementById('add-service-form').style.display = 'none';
+        document.getElementById('select-column').style.display = 'none';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'none';
+        });
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            cell.contentEditable = false;
+            cell.style.backgroundColor = '';
+        });
+        document.getElementById('action-buttons').style.display = 'none';
+    }
+
+    function showConfirmButtons(mode) {
+        const actionButtons = document.getElementById('action-buttons');
+        actionButtons.style.display = 'block';
+    }
+
+    function applyChanges() {
+        if (document.getElementById('add-service-form').style.display === 'block') {
+            const form = document.getElementById('add-service-form-action');
+            const formData = new FormData(form);
+            fetch("{{ url_for('service_list') }}", {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Услуга добавлена!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при добавлении услуги.");
+                }
+            });
+        } else if (document.getElementById('action-buttons').style.display === 'block') {
+            if (document.getElementById('select-column').style.display === 'table-cell') {
+                confirmDelete();
+            } else {
+                saveChanges();
+            }
+        }
+        resetAllModes();
+    }
+
+    function cancelAction() {
+        resetAllModes();
+    }
+
+    function confirmDelete() {
+        document.getElementById('service-table-form').submit();
+    }
+
+    function saveChanges() {
+        const updates = [];
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const serviceId = cell.getAttribute('data-service-id');
+            const field = cell.getAttribute('data-field');
+            const value = cell.innerText;
+
+            if (originalServiceData[serviceId] && originalServiceData[serviceId][field] !== value) {
+                updates.push({ service_id: serviceId, field: field, value: value });
+            }
+        });
+
+        if (updates.length > 0) {
+            fetch("{{ url_for('update_service_field') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(updates),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Изменения сохранены!");
+                } else {
+                    alert("Ошибка при сохранении изменений.");
+                }
+            });
+        }
+    }
+
+    function updateTitle(title) {
+        document.getElementById('page-title').innerText = title;
+    }
+</script>
+
+{% endblock %}

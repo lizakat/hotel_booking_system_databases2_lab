@@ -1,0 +1,232 @@
+/* Основной стиль для страницы */
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #eef1f5;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+/* Навигация */
+nav {
+    background-color: #4CAF50;
+    padding: 15px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+nav .menu {
+    display: flex;
+    align-items: center;
+}
+
+nav a {
+    color: white;
+    margin-right: 20px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+nav a:hover {
+    color: #d1e7dd;
+}
+
+nav .dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+/* Стили для выпадающего меню */
+nav .dropdown-content {
+    display: none;
+    position: absolute;
+    background-color: white;
+    min-width: 200px;
+    padding: 15px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    border-radius: 5px;
+    z-index: 1;
+}
+
+nav .dropdown:hover .dropdown-content {
+    display: block;
+}
+
+nav .dropdown-content a {
+    color: #4CAF50;
+    padding: 10px;
+    text-decoration: none;
+    display: block;
+    text-align: left;
+}
+
+nav .dropdown-content a:hover {
+    background-color: #f1f1f1;
+}
+
+nav .dropdown-content label {
+    font-weight: bold;
+}
+
+/* Форма загрузки SQL файла */
+form.upload-form {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px; /* Расстояние между кнопкой и полем выбора файла */
+}
+
+form.upload-form input[type="file"] {
+    padding: 8px;
+    background-color: #f9f9f9;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form.upload-form input[type="file"]:hover {
+    background-color: #e2e6ea; /* Легкое затемнение при наведении */
+}
+
+form.upload-form button {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+form.upload-form button:hover {
+    background-color: #45a049; /* Темнее при наведении */
+}
+
+/* Основной стиль для кнопок */
+button, .dropbtn {
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover, .dropbtn:hover {
+    background-color: #45a049;
+}
+
+/* Стиль для выпадающих меню */
+.dropdown {
+    position: relative;
+    display: inline-block;
+    margin-left: 15px;
+}
+
+.dropbtn {
+    background-color: #4CAF50;
+    color: white;
+    padding: 10px 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+/* Стили для ссылки для скачивания */
+#download-link {
+    display: inline-block;
+    text-decoration: none;
+    padding: 10px 15px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 5px;
+    text-align: center;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+#download-link:hover {
+    background-color: #45a049;
+}
+
+/* Стили для формы в выпадающем меню */
+.dropdown-content select, .dropdown-content label {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.dropdown-content select {
+    padding: 8px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+/* Дополнительные стили для контейнеров */
+.container {
+    margin: 20px auto;
+    max-width: 900px;
+    padding: 20px;
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Стиль таблицы */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+}
+
+th, td {
+    padding: 12px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+
+th {
+    background-color: #4CAF50;
+    color: white;
+}
+
+tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Мобильные стили */
+@media (max-width: 600px) {
+    nav {
+        padding: 10px;
+    }
+
+    nav a {
+        margin-right: 10px;
+    }
+
+    .container {
+        margin: 10px;
+    }
+}
+
+/* Стили для всплывающих сообщений */
+.flashes {
+    list-style-type: none;
+    padding: 0;
+    color: red;
+}
+
+/* Добавлены дополнительные отступы между элементами */
+.menu {
+    display: flex;
+    gap: 20px;
+}
+
+.upload-form {
+    margin-left: 20px;
+}

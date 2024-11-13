@@ -1,0 +1,179 @@
+{% extends "layout.html" %}
+{% block title %}Статусы бронирования{% endblock %}
+{% block content %}
+
+<h1 id="page-title">Статусы бронирования</h1>
+
+<div style="text-align: right; margin-bottom: 10px;">
+    <button id="edit-btn" onclick="toggleEditMode()">Изменить</button>
+    <button id="delete-btn" onclick="toggleDeleteMode()">Удалить</button>
+    <button id="add-btn" onclick="toggleAddForm()">Добавить</button>
+</div>
+
+<div id="action-buttons" style="display: none; text-align: right; margin-bottom: 10px;">
+    <button id="apply-btn" onclick="applyChanges()">Применить</button>
+    <button id="cancel-btn" onclick="cancelAction()">Отменить</button>
+</div>
+
+<div id="add-status-form" style="display: none;">
+    <h2>Добавить новый статус</h2>
+    <form method="POST" id="add-status-form-action">
+        {{ form.hidden_tag() }}
+        {{ form.status_name.label }} {{ form.status_name() }}<br>
+        <button type="submit">Добавить</button>
+    </form>
+</div>
+
+<form id="status-table-form" method="POST" action="{{ url_for('delete_statuses') }}">
+    <table>
+        <thead>
+            <tr>
+                <th id="select-column" style="display: none;">Выбор</th>
+                <th>Название статуса</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for status in statuses %}
+            <tr>
+                <td class="select-cell" style="display: none;">
+                    <input type="checkbox" name="status_ids" value="{{ status.status_id }}" class="delete-checkbox">
+                </td>
+                <td contenteditable="false" data-status-id="{{ status.status_id }}" data-field="status_name">{{ status.status_name }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+    let originalStatusData = {};
+
+    function updateTitle(title) {
+        document.getElementById('page-title').innerText = title;
+    }
+
+    function toggleAddForm() {
+        resetAllModes();
+        const addForm = document.getElementById('add-status-form');
+        addForm.style.display = 'block';
+        updateTitle("Статусы бронирования (добавление)");
+        showConfirmButtons('add');
+    }
+
+    function toggleDeleteMode() {
+        resetAllModes();
+        document.getElementById('select-column').style.display = 'table-cell';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'table-cell';
+        });
+        updateTitle("Статусы бронирования (удаление)");
+        showConfirmButtons('delete');
+    }
+
+    function toggleEditMode() {
+        resetAllModes();
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const statusId = cell.getAttribute('data-status-id');
+            const field = cell.getAttribute('data-field');
+            originalStatusData[statusId] = originalStatusData[statusId] || {};
+            originalStatusData[statusId][field] = cell.innerText;
+
+            cell.contentEditable = true;
+            cell.style.backgroundColor = '#f0f8ff';
+        });
+        updateTitle("Статусы бронирования (редактирование)");
+        showConfirmButtons('edit');
+    }
+
+    function resetAllModes() {
+        updateTitle("Статусы бронирования");
+        document.getElementById('add-status-form').style.display = 'none';
+        document.getElementById('select-column').style.display = 'none';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'none';
+        });
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            cell.contentEditable = false;
+            cell.style.backgroundColor = '';
+        });
+        document.getElementById('action-buttons').style.display = 'none';
+    }
+
+    function showConfirmButtons(mode) {
+        const actionButtons = document.getElementById('action-buttons');
+        actionButtons.style.display = 'block';
+    }
+
+    function applyChanges() {
+        if (document.getElementById('add-status-form').style.display === 'block') {
+            const form = document.getElementById('add-status-form-action');
+            const formData = new FormData(form);
+            fetch("{{ url_for('status_list') }}", {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Статус добавлен!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при добавлении статуса.");
+                }
+            });
+        } else if (document.getElementById('action-buttons').style.display === 'block') {
+            if (document.getElementById('select-column').style.display === 'table-cell') {
+                confirmDelete();
+            } else {
+                saveChanges();
+            }
+        }
+        resetAllModes();
+    }
+
+    function cancelAction() {
+        resetAllModes();
+    }
+
+    function confirmDelete() {
+        document.getElementById('status-table-form').submit();
+    }
+
+    function saveChanges() {
+        const updates = [];
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const statusId = cell.getAttribute('data-status-id');
+            const field = cell.getAttribute('data-field');
+            const value = cell.innerText;
+
+            if (originalStatusData[statusId] && originalStatusData[statusId][field] !== value) {
+                updates.push({ status_id: statusId, field: field, value: value });
+            }
+        });
+
+        if (updates.length > 0) {
+            fetch("{{ url_for('update_status_field') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Изменения сохранены!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при сохранении изменений: " + data.error);
+                }
+            })
+            .catch(error => {
+                alert("Ошибка при отправке запроса: " + error.message);
+            });
+        } else {
+            alert("Нет изменений для сохранения.");
+        }
+    }
+</script>
+
+{% endblock %}

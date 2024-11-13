@@ -1,0 +1,31 @@
+service_id,type,cost
+1,Breakfast,10.00
+2,Cleaning,20.00
+3,Parking,5.00
+4,Gym Access,15.00
+5,Spa,50.00
+6,Wi-Fi,5.00
+7,Laundry,12.00
+8,Mini Bar,30.00
+9,Airport Shuttle,25.00
+10,Dinner,20.00
+11,Lunch,15.00
+12,Massage,40.00
+13,Room Service,10.00
+14,Late Checkout,25.00
+15,Early Check-in,20.00
+16,Concierge Service,35.00
+17,Business Center Access,45.00
+18,Conference Room,100.00
+19,City Tour,30.00
+20,Pet Sitting,15.00
+21,Car Rental,60.00
+22,Bicycle Rental,10.00
+23,Luggage Storage,5.00
+24,Private Pool Access,100.00
+25,VIP Lounge,200.00
+26,Cocktail Service,50.00
+27,Guided Excursion,80.00
+28,Fitness Trainer,60.00
+29,Live Entertainment,120.00
+30,Children’s Activities,25.00

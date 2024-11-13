@@ -1,0 +1,185 @@
+{% extends "layout.html" %}
+{% block title %}Клиенты{% endblock %}
+{% block content %}
+
+<h1 id="page-title">Клиенты</h1>
+
+<div style="text-align: right; margin-bottom: 10px;">
+    <button id="edit-btn" onclick="toggleEditMode()">Изменить</button>
+    <button id="delete-btn" onclick="toggleDeleteMode()">Удалить</button>
+    <button id="add-btn" onclick="toggleAddForm()">Добавить</button>
+</div>
+
+<div id="action-buttons" style="display: none; text-align: right; margin-bottom: 10px;">
+    <button id="apply-btn" onclick="applyChanges()">Применить</button>
+    <button id="cancel-btn" onclick="cancelAction()">Отменить</button>
+</div>
+
+<div id="add-client-form" style="display: none;">
+    <h2>Добавить нового клиента</h2>
+    <form method="POST" id="add-client-form-action">
+        {{ form.hidden_tag() }}
+        {{ form.passport_number.label }} {{ form.passport_number() }}<br>
+        {{ form.name.label }} {{ form.name() }}<br>
+        {{ form.phone_number.label }} {{ form.phone_number() }}<br>
+        <button type="submit">Добавить</button>
+    </form>
+</div>
+
+<form id="client-table-form" method="POST" action="{{ url_for('delete_clients') }}">
+    <table>
+        <thead>
+            <tr>
+                <th id="select-column" style="display: none;">Выбор</th>
+                <th>Номер паспорта</th>
+                <th>Имя</th>
+                <th>Номер телефона</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for client in clients %}
+            <tr>
+                <td class="select-cell" style="display: none;">
+                    <input type="checkbox" name="client_ids" value="{{ client.client_id }}" class="delete-checkbox">
+                </td>
+                <td contenteditable="false" data-client-id="{{ client.client_id }}" data-field="passport_number">{{ client.passport_number }}</td>
+                <td contenteditable="false" data-client-id="{{ client.client_id }}" data-field="name">{{ client.name }}</td>
+                <td contenteditable="false" data-client-id="{{ client.client_id }}" data-field="phone_number">{{ client.phone_number }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+    let originalClientData = {};
+
+    function updateTitle(title) {
+        document.getElementById('page-title').innerText = title;
+    }
+
+    function toggleAddForm() {
+        resetAllModes();
+        const addForm = document.getElementById('add-client-form');
+        addForm.style.display = 'block';
+        updateTitle("Клиенты (добавление)");
+        showConfirmButtons('add');
+    }
+
+    function toggleDeleteMode() {
+        resetAllModes();
+        document.getElementById('select-column').style.display = 'table-cell';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'table-cell';
+        });
+        updateTitle("Клиенты (удаление)");
+        showConfirmButtons('delete');
+    }
+
+    function toggleEditMode() {
+        resetAllModes();
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const clientId = cell.getAttribute('data-client-id');
+            const field = cell.getAttribute('data-field');
+            originalClientData[clientId] = originalClientData[clientId] || {};
+            originalClientData[clientId][field] = cell.innerText;
+
+            cell.contentEditable = true;
+            cell.style.backgroundColor = '#f0f8ff';
+        });
+        updateTitle("Клиенты (редактирование)");
+        showConfirmButtons('edit');
+    }
+
+    function resetAllModes() {
+        updateTitle("Клиенты");
+        document.getElementById('add-client-form').style.display = 'none';
+        document.getElementById('select-column').style.display = 'none';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'none';
+        });
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            cell.contentEditable = false;
+            cell.style.backgroundColor = '';
+        });
+        document.getElementById('action-buttons').style.display = 'none';
+    }
+
+    function showConfirmButtons(mode) {
+        const actionButtons = document.getElementById('action-buttons');
+        actionButtons.style.display = 'block';
+    }
+
+    function applyChanges() {
+        if (document.getElementById('add-client-form').style.display === 'block') {
+            const form = document.getElementById('add-client-form-action');
+            const formData = new FormData(form);
+            fetch("{{ url_for('client_list') }}", {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Клиент добавлен!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при добавлении клиента.");
+                }
+            });
+        } else if (document.getElementById('action-buttons').style.display === 'block') {
+            if (document.getElementById('select-column').style.display === 'table-cell') {
+                confirmDelete();
+            } else {
+                saveChanges();
+            }
+        }
+        resetAllModes();
+    }
+
+    function cancelAction() {
+        resetAllModes();
+    }
+
+    function confirmDelete() {
+        document.getElementById('client-table-form').submit();
+    }
+
+    function saveChanges() {
+        const updates = [];
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const clientId = cell.getAttribute('data-client-id');
+            const field = cell.getAttribute('data-field');
+            const value = cell.innerText;
+
+            if (originalClientData[clientId] && originalClientData[clientId][field] !== value) {
+                updates.push({ client_id: clientId, field: field, value: value });
+            }
+        });
+
+        if (updates.length > 0) {
+            fetch("{{ url_for('update_client_field') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Изменения сохранены!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при сохранении изменений: " + data.error);
+                }
+            })
+            .catch(error => {
+                alert("Ошибка при отправке запроса: " + error.message);
+            });
+        } else {
+            alert("Нет изменений для сохранения.");
+        }
+    }
+</script>
+
+{% endblock %}

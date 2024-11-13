@@ -1,0 +1,186 @@
+{% extends "layout.html" %}
+{% block title %}Комнаты{% endblock %}
+{% block content %}
+
+<h1 id="page-title">  Комнаты</h1>
+
+<div style="text-align: right; margin-bottom: 10px;">
+    <button id="edit-btn" onclick="toggleEditMode()">Изменить</button>
+    <button id="delete-btn" onclick="toggleDeleteMode()">Удалить</button>
+    <button id="add-btn" onclick="toggleAddForm()">Добавить</button>
+</div>
+
+<div id="action-buttons" style="display: none; text-align: right; margin-bottom: 10px;">
+    <button id="apply-btn" onclick="applyChanges()">Применить</button>
+    <button id="cancel-btn" onclick="cancelAction()">Отменить</button>
+</div>
+
+<div id="add-room-form" style="display: none;">
+    <h2>Добавить новую комнату</h2>
+    <form method="POST" id="add-room-form-action">
+        {{ form.hidden_tag() }}
+        {{ form.number.label }} {{ form.number() }}<br>
+        {{ form.bed_capacity.label }} {{ form.bed_capacity() }}<br>
+        {{ form.price_per_night.label }} {{ form.price_per_night() }}<br>
+        <button type="submit">Добавить</button>
+    </form>
+</div>
+
+<form id="room-table-form" method="POST" action="{{ url_for('delete_rooms') }}">
+    <table>
+        <thead>
+            <tr>
+                <th id="select-column" style="display: none;">Выбор</th>
+                <th>Номер комнаты</th>
+                <th>Вместимость</th>
+                <th>Цена за ночь</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for room in rooms %}
+            <tr>
+                <td class="select-cell" style="display: none;">
+                    <input type="checkbox" name="room_ids" value="{{ room.room_id }}" class="delete-checkbox">
+                </td>
+                <td contenteditable="false" data-room-id="{{ room.room_id }}" data-field="number">{{ room.number }}</td>
+                <td contenteditable="false" data-room-id="{{ room.room_id }}" data-field="bed_capacity">{{ room.bed_capacity }}</td>
+                <td contenteditable="false" data-room-id="{{ room.room_id }}" data-field="price_per_night">{{ room.price_per_night }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</form>
+
+<script>
+    let originalRoomData = {};
+
+    function updateTitle(title) {
+        document.getElementById('page-title').innerText = title;
+    }
+
+    function toggleAddForm() {
+        resetAllModes();
+        const addForm = document.getElementById('add-room-form');
+        addForm.style.display = 'block';
+        updateTitle("Комнаты (добавление)");
+        showConfirmButtons('add');
+    }
+
+    function toggleDeleteMode() {
+        resetAllModes();
+        document.getElementById('select-column').style.display = 'table-cell';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'table-cell';
+        });
+        updateTitle("Комнаты (удаление)");
+        showConfirmButtons('delete');
+    }
+
+    function toggleEditMode() {
+        resetAllModes();
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const roomId = cell.getAttribute('data-room-id');
+            const field = cell.getAttribute('data-field');
+            originalRoomData[roomId] = originalRoomData[roomId] || {};
+            originalRoomData[roomId][field] = cell.innerText;
+
+            cell.contentEditable = true;
+            cell.style.backgroundColor = '#f0f8ff';
+        });
+        updateTitle("Комнаты (редактирование)");
+        showConfirmButtons('edit');
+    }
+
+    function resetAllModes() {
+        updateTitle("Комнаты");
+        document.getElementById('add-room-form').style.display = 'none';
+        document.getElementById('select-column').style.display = 'none';
+        document.querySelectorAll('.select-cell').forEach(cell => {
+            cell.style.display = 'none';
+        });
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            cell.contentEditable = false;
+            cell.style.backgroundColor = '';
+        });
+        document.getElementById('action-buttons').style.display = 'none';
+        
+    }
+
+    function showConfirmButtons(mode) {
+        const actionButtons = document.getElementById('action-buttons');
+        actionButtons.style.display = 'block';
+    }
+
+    function applyChanges() {
+        if (document.getElementById('add-room-form').style.display === 'block') {
+            const form = document.getElementById('add-room-form-action');
+            const formData = new FormData(form);
+            fetch("{{ url_for('room_list') }}", {
+                method: 'POST',
+                body: formData,
+            })
+            .then(response => {
+                if (response.ok) {
+                    alert("Комната добавлена!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при добавлении комнаты.");
+                }
+            });
+        } else if (document.getElementById('action-buttons').style.display === 'block') {
+            if (document.getElementById('select-column').style.display === 'table-cell') {
+                confirmDelete();
+            } else {
+                saveChanges();
+            }
+        }
+        resetAllModes();
+    }
+
+    function cancelAction() {
+        resetAllModes();
+    }
+
+    function confirmDelete() {
+        document.getElementById('room-table-form').submit();
+    }
+
+    function saveChanges() {
+        const updates = [];
+        document.querySelectorAll('[data-field]').forEach(cell => {
+            const roomId = cell.getAttribute('data-room-id');
+            const field = cell.getAttribute('data-field');
+            const value = cell.innerText;
+
+            if (originalRoomData[roomId] && originalRoomData[roomId][field] !== value) {
+                updates.push({ room_id: roomId, field: field, value: value });
+            }
+        });
+
+        if (updates.length > 0) {
+            fetch("{{ url_for('update_room_field') }}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(updates),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert("Изменения сохранены!");
+                    location.reload();
+                } else {
+                    alert("Ошибка при сохранении изменений: " + data.error);
+                }
+            })
+            .catch(error => {
+                alert("Ошибка при отправке запроса: " + error.message);
+            });
+        } else {
+            alert("Нет изменений для сохранения.");
+        }
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Отель{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <header>
+        <nav>
+            <div class="menu">
+                <a href="{{ url_for('index') }}">Главная</a>
+                <div class="dropdown">
+                    <a href="#" onclick="toggleDropdown('tableDropdown')">Таблицы</a>
+                    <div id="tableDropdown" class="dropdown-content">
+                        <a href="{{ url_for('room_list') }}">Комнаты</a>
+                        <a href="{{ url_for('client_list') }}">Клиенты</a>
+                        <a href="{{ url_for('booking_list') }}">Бронирования</a>
+                        <a href="{{ url_for('status_list') }}">Статусы броней</a>
+                        <a href="{{ url_for('service_list') }}">Услуги</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dropdown">
+                <button onclick="toggleDropdown('downloadDropdown')" class="dropbtn">Скачать</button>
+                <div id="downloadDropdown" class="dropdown-content">
+                    <!-- Форма преобразована в ссылку с параметрами -->
+                    <label for="table-select">Выберите таблицу:</label>
+                    <select id="table-select" name="table">
+                        <option value="clients">Клиенты</option>
+                        <option value="rooms">Комнаты</option>
+                        <option value="bookings">Бронирования</option>
+                        <option value="statuses">Статусы броней</option>
+                        <option value="services">Услуги</option>
+                    </select>
+                    <br><br>
+                    <label for="format-select">Выберите формат:</label>
+                    <select id="format-select" name="format">
+                        <option value="csv">CSV</option>
+                        <option value="xlsx">Excel (XLSX)</option>
+                        <option value="json">JSON</option>
+                    </select>
+                    <br><br>
+                    <!-- Ссылка для скачивания с параметрами -->
+                    <a href="#" id="download-link" class="button">Скачать</a>
+                </div>
+            </div>
+
+            <form action="{{ url_for('upload_sql') }}" method="POST" enctype="multipart/form-data" class="upload-form">
+                <input type="file" name="sql_file" accept=".txt,.sql">
+                <button type="submit">Загрузить SQL файл</button>
+            </form>
+        </nav>
+    </header>
+
+    <main>
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        {% block content %}{% endblock %}
+    </main>
+
+    <script>
+        // Функция для управления выпадающим меню
+        function toggleDropdown(id) {
+            document.getElementById(id).classList.toggle("show");
+        }
+
+        // Закрытие всех выпадающих меню, если пользователь нажал вне них
+        window.onclick = function(event) {
+            if (!event.target.matches('.dropbtn')) {
+                let dropdowns = document.getElementsByClassName("dropdown-content");
+                for (let i = 0; i < dropdowns.length; i++) {
+                    let openDropdown = dropdowns[i];
+                    if (openDropdown.classList.contains('show')) {
+                        openDropdown.classList.remove('show');
+                    }
+                }
+            }
+        }
+
+        // Генерация ссылки для скачивания
+        document.getElementById('download-link').addEventListener('click', function(event) {
+            event.preventDefault();
+            let table = document.getElementById('table-select').value;
+            let format = document.getElementById('format-select').value;
+            let url = `/download/${table}/${format}`;  // Формирование URL для скачивания
+            window.location.href = url;  // Перенаправление на сформированный URL
+        });
+    </script>
+</body>
+</html>
