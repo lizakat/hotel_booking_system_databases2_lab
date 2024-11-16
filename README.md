@@ -22,8 +22,8 @@
 1. Клонируйте репозиторий:
 
    ```bash
-   git clone https://github.com/ваш_репозиторий.git
-   cd ваш_репозиторий
+   git clone [https://github.com/ваш_репозиторий.git](https://github.com/lizakat/hotel_booking_system_databases2_lab.git)
+   cd hotel_booking_system_databases2_lab
    ```
 
 2. Создайте виртуальное окружение и активируйте его:
